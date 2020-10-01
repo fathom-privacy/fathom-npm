@@ -1,14 +1,14 @@
 {
     "name": "@fathom-privacy/fathom-privacy",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "SDK to connect to the Fathom Privacy API",
     "license": "Apache License 2.0",
     "repository": "fathom-privacy/fathom-npm",
     "main": "index.js",
     "keywords": [
-    "fathom",
-    "api",
-    "package",
-    "fathom privacy"
+        "fathom",
+        "api",
+        "package",
+        "fathom privacy"
     ]
 }
