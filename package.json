@@ -1,6 +1,6 @@
 {
-    "name": "@fathom-privacy/fathom-privacy",
-    "version": "2.0.0",
+    "name": "fathom-privacy",
+    "version": "1.1.0",
     "description": "SDK to connect to the Fathom Privacy API",
     "license": "Apache License 2.0",
     "repository": "fathom-privacy/fathom-npm",
@@ -10,5 +10,9 @@
         "api",
         "package",
         "fathom privacy"
-    ]
+    ],
+    "dependencies": {
+        "axios": "^0.20.0",
+        "uuid": "^8.3.1"
+    }
 }
