@@ -1,6 +1,6 @@
 {
     "name": "fathom-privacy",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "SDK to connect to the Fathom Privacy API",
     "license": "Apache License 2.0",
     "repository": "fathom-privacy/fathom-npm",

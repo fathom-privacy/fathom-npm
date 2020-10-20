@@ -32,16 +32,16 @@ fathom("your-application-id", (session_id, newLookup) => {
     function checkStatusPeriodically() {
         newLookup.getStatus()
             .then((status) => {
-            if (status === "complete") {
-                // when status is complete, fetch call the getLIContacts() functon on newLookup
-                getContactsWhenComplete()
-            } else {
-                console.log(status)
-                setTimeout(() => {checkStatusPeriodically()}, 5000)
-            }
+                if (status === "complete") {
+                    // when status is complete, fetch call the getLIContacts() functon on newLookup
+                    getContactsWhenComplete()
+                } else {
+                    console.log(status)
+                    setTimeout(() => {checkStatusPeriodically()}, 5000)
+                }
             })
             .catch((error) =>  {
-            console.log(error)
+                console.log(error)
             });
     }
 
@@ -49,10 +49,10 @@ fathom("your-application-id", (session_id, newLookup) => {
     function getContactsWhenComplete() {
         newLookup.getLIContacts()
             .then((results) => {
-            console.log(results)
+                console.log(results)
             })
             .catch((error) =>  {
-            console.log(error)
+                console.log(error)
             });
     }
 })
