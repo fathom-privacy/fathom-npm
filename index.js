@@ -1,17 +1,19 @@
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
-var dev = false
+var dev = true
 var apiServer = 'https://liapi.fathomprivacy.com/api/v1'
 var authServer = 'https://authentication.fathomprivacy.com'
+var wsServer = 'ws://liapi.fathomprivacy.com/status/'
 
 if (dev) {
     apiServer = 'http://localhost:8000/api/v1'
     authServer = 'http://localhost:3000'
+    wsServer = 'ws://localhost:8000/status/'
 } 
 
 //uses both callback and promise for backwards compatibility
-module.exports = function fathomInit(application_id, callback)  {
+function fathomInit(application_id, callback)  {
     //set style of button
     var x = document.getElementById("fathom-signup");
     x.style.cursor = "pointer";
@@ -19,48 +21,29 @@ module.exports = function fathomInit(application_id, callback)  {
 
     //OnClick of that button, create a popup and on successful Sign in, both return callback (for backwards compatibility) and return a Lookup class Object
     document.getElementById('fathom-signup').onclick = function openAuth() {
-        session_id = uuidv4();
+        let session_id = uuidv4();
         let popup = window.open(authServer+"?session_id="+session_id+"&application_id="+application_id,'popUpWindow','height=500,width=500,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no, status=yes');
 
-        // This will succeed    
-        newLookup = waitForStatus(session_id, application_id, popup, 130, callback);
-    }
-}
-  
-function waitForStatus(session_id, application_id, popup, maxRetries, callback) {
-    var count = 0;
-    var restartCheck = setInterval(function() {
-        count++;
-        if (count <= maxRetries) {
-            //send credentials to server
-            axios({
-                method: 'get',
-                url: apiServer +'/getStatus?session_id='+session_id,
-                headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer '+ application_id
-                }
-            })
-            .then((response) => {
-                //success case needs if statement on status
-                if (response.data.status === "in progress" || response.data.status === "timed out awaining pin") {
-                    //close window
-                    clearInterval(restartCheck);
-                    popup.close()
-                    callback(session_id, new Lookup(application_id, session_id));
-                } else {
-                    if (dev) {
-                        console.log(response.data.status)
-                    }
-                }
-            }, (error) => {
-                console.log(error);
-            });
-        } else {
-            clearInterval(restartCheck);
-            callback("Error");
+        // wait with websockets instead
+        let socketPath = wsServer + session_id;    
+        const chatSocket = new WebSocket(socketPath);
+
+        chatSocket.onmessage = (e) => {
+            var data = JSON.parse(e.data);
+            if (dev) {
+                console.log("onMessage is received!")
+                console.log(data)
+            }
+            if (data.status === "in progress" || data.status === "timed out awaining pin") {
+                //close window
+
+                //slight delay before closing to finish animation
+                setTimeout(() => {  popup.close() }, 1000);
+                callback(new Lookup(application_id, session_id), null);
+            }
         }
-    }, 3000);
+
+    }
 }
 
 class Lookup{
@@ -115,3 +98,6 @@ class Lookup{
         })
     }
 }
+
+// export feature declared earlier as default
+export { Lookup, fathomInit as default };
