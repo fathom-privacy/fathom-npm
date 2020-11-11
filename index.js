@@ -7,8 +7,8 @@ var authServer = 'https://authentication.fathomprivacy.com'
 var wsServer = 'ws://liapi.fathomprivacy.com/status/'
 
 if (dev) {
-    apiServer = 'http://localhost:8000/api/v1'
     authServer = 'http://localhost:3000'
+    apiServer = 'http://localhost:8000/api/v1'
     wsServer = 'ws://localhost:8000/status/'
 } 
 
@@ -55,14 +55,73 @@ class Lookup{
 
     //connects to the websocket to listen for status updates
     listenForStatus(onMessageReceivedCallback) {
+        console.log("listening")
         // wait with websockets instead
-        let socketPath = wsServer + this.session_id;    
-        const chatSocket = new WebSocket(socketPath);
+        let socketPath = wsServer + this.session_id;   
 
-        chatSocket.onmessage = (e) => {
-            var data = JSON.parse(e.data);
-            onMessageReceivedCallback(data)
-        }
+        function repeatConnectionAttempt() {
+            console.log("trying to connect to server websocket")
+            const chatSocket = new WebSocket(socketPath);
+            chatSocket.onmessage = (e) => {
+                var data = JSON.parse(e.data);
+                onMessageReceivedCallback(data)
+            }
+
+            chatSocket.onerror=function(event){
+                console.log("Error");
+                repeatConnectionAttempt()
+            }
+        }    
+
+        repeatConnectionAttempt()
+    }
+
+    //calls the http startFirstDegreeCollection endpoint on our server
+    startFirstDegreeCollection(email, password) {
+        let that = this
+        return new Promise (function(resolve, reject) {
+            axios({
+                method: 'post',
+                url: apiServer +'/startFirstDegreeCollection/',
+                headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer '+ that.application_id
+                },
+                data: {
+                    username: email,
+                    password: password,
+                    session_id: that.session_id
+                }
+            }).then((response) => {
+                //if creds submit is successful, prompt for pin
+                resolve(response.data.status)
+            }, (error) => {
+                reject(error)
+            });
+        })
+    }
+
+    //calls the http startFirstDegreeCollection endpoint on our server
+    setEmailPin(pin) {
+        let that = this
+        return new Promise (function(resolve, reject) {
+            axios({
+                method: 'post',
+                url: apiServer +'/setEmailPin/',
+                headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer '+ that.application_id
+                },
+                data: {
+                    session_id: this.session_id,
+                    pin: pin
+                  }
+            }).then((response) => {
+                resolve(response.data.status)
+            }, (error) => {
+                reject(error)
+            });
+        })
     }
 
     //makes a http call to /getStatus to get the current status
