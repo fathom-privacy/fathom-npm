@@ -1,15 +1,15 @@
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
-var dev = true
+var dev = false
 var apiServer = 'https://liapi.fathomprivacy.com/api/v1'
 var authServer = 'https://authentication.fathomprivacy.com'
-var wsServer = 'ws://liapi.fathomprivacy.com/status/'
+var wsServer = 'wss://liapi.fathomprivacy.com/status/'
 
 if (dev) {
     authServer = 'http://localhost:3000'
     apiServer = 'http://localhost:8000/api/v1'
-    wsServer = 'ws://localhost:8000/status/'
+    wsServer = 'wss://localhost:8000/status/'
 } 
 
 //uses both callback and promise for backwards compatibility
