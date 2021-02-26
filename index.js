@@ -9,7 +9,7 @@ var wsServer = 'wss://liapi.fathomprivacy.com/status/'
 if (dev) {
     authServer = 'http://localhost:3000'
     apiServer = 'http://localhost:8000/api/v1'
-    wsServer = 'wss://localhost:8000/status/'
+    wsServer = 'ws://localhost:8000/status/'
 } 
 
 //uses both callback and promise for backwards compatibility
@@ -17,7 +17,7 @@ function fathomInit(application_id)  {
     //set style of button
     var x = document.getElementById("fathom-signup");
     x.style.cursor = "pointer";
-    x.innerText = "Connect your LinkedIn with Fathom"
+    x.innerText = "Sign in with LinkedIn"
 
     //OnClick of that button, create a popup and on successful Sign in, both return callback (for backwards compatibility) and return a Lookup class Object
     return new Promise (function(resolve, reject) {
@@ -56,24 +56,34 @@ class Lookup{
     //connects to the websocket to listen for status updates
     listenForStatus(onMessageReceivedCallback) {
         console.log("listening")
+
+        let continuousConnection = {}
+
         // wait with websockets instead
         let socketPath = wsServer + this.session_id;   
 
         function repeatConnectionAttempt() {
-            console.log("trying to connect to server websocket")
             const chatSocket = new WebSocket(socketPath);
             chatSocket.onmessage = (e) => {
                 var data = JSON.parse(e.data);
+                if (data === 'complete') {
+                    clearInterval(continuousConnection)
+                }
                 onMessageReceivedCallback(data)
             }
 
             chatSocket.onerror=function(event){
                 console.log("Error");
-                repeatConnectionAttempt()
+                console.log(event)
+                //repeatConnectionAttempt()
             }
         }    
 
-        repeatConnectionAttempt()
+        console.log("trying to connect to server websocket " + wsServer)
+        continuousConnection = setInterval(() => {
+            repeatConnectionAttempt()
+        }, 1000*3);
+
     }
 
     //calls the http startFirstDegreeCollection endpoint on our server
@@ -113,7 +123,7 @@ class Lookup{
                 'Authorization': 'Bearer '+ that.application_id
                 },
                 data: {
-                    session_id: this.session_id,
+                    session_id: that.session_id,
                     pin: pin
                   }
             }).then((response) => {
