@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
-var dev = true
+var dev = false
 var apiServer = 'https://liapi.fathomprivacy.com/api/v1'
 var authServer = 'https://authentication.fathomprivacy.com'
 var wsServer = 'wss://liapi.fathomprivacy.com/status/'
