@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
-var dev = false
+var dev = true
 var apiServer = 'https://liapi.fathomprivacy.com/api/v1'
 var authServer = 'https://authentication.fathomprivacy.com'
 var wsServer = 'wss://liapi.fathomprivacy.com/status/'
@@ -12,38 +12,47 @@ if (dev) {
     wsServer = 'ws://localhost:8000/status/'
 } 
 
-//uses both callback and promise for backwards compatibility
-function fathomInit(application_id)  {
-    //set style of button
-    var x = document.getElementById("fathom-signup");
-    x.style.cursor = "pointer";
-    x.innerText = "Sign in with LinkedIn"
+class Fathom {
+    constructor(application_id)  {
+        this.application_id = application_id;
+    }
+    
+    initButton() {
+        //set style of button
+        var x = document.getElementById("fathom-signup");
+        x.style.cursor = "pointer";
+        x.innerText = "Sign in with LinkedIn"
 
-    //OnClick of that button, create a popup and on successful Sign in, both return callback (for backwards compatibility) and return a Lookup class Object
-    return new Promise (function(resolve, reject) {
-        document.getElementById('fathom-signup').onclick = function openAuth() {
-            let session_id = uuidv4();
-            let popup = window.open(authServer+"?session_id="+session_id+"&application_id="+application_id,'popUpWindow','height=500,width=500,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no, status=yes');
+        let that = this
 
-            let newLookup = new Lookup(application_id, session_id)
-            newLookup.listenForStatus((message) => {
-                if (message.status === "in progress" || message.status === "timed out awaining pin" || message.status === "unknown error") {
-                    //close window
-                    //slight delay before closing to finish animation
-                    setTimeout(() => {  popup.close() }, 1000);
-                }
-            })
-            resolve(newLookup)
-        }
-    })
+        //OnClick of that button, create a popup and on successful Sign in, both return callback (for backwards compatibility) and return a Lookup class Object
+        return new Promise (function(resolve, reject) {
+            document.getElementById('fathom-signup').onclick = function openAuth() {
+                let session_id = uuidv4();
+                let popup = window.open(authServer+"?session_id="+session_id+"&application_id="+that.application_id,'popUpWindow','height=500,width=500,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no, status=yes');
+
+                let newLookup = new Lookup(that.application_id, session_id)
+                newLookup.listenForStatus((message) => {
+                    if (message.status === "in progress" || message.status === "timed out awaining pin" || message.status === "unknown error") {
+                        //close window
+                        //slight delay before closing to finish animation
+                        setTimeout(() => {  popup.close() }, 1000);
+                    }
+                })
+                resolve(newLookup)
+            }
+        })
+    }
+
+    lookup(session_id) {
+        return new Lookup(this.application_id, session_id)
+    }
 }
 
-function lookup(application_id, session_id) {
-    return new Lookup(application_id, session_id)
-}
+
 
 //Lookup Class contains many helpful functions for interacting with the API
-class Lookup{
+class Lookup {
     constructor(application_id, session_id) {
         this.application_id = application_id;
         this.session_id = session_id;
@@ -61,10 +70,12 @@ class Lookup{
 
         // wait with websockets instead
         let socketPath = wsServer + this.session_id;   
+        let socket = null;
 
-        function repeatConnectionAttempt() {
-            const chatSocket = new WebSocket(socketPath);
-            chatSocket.onmessage = (e) => {
+        function connect_socket() {
+            socket = new WebSocket(socketPath);
+            socket.onclose = (e) => {connect_socket}; // <- rise from your grave!
+            socket.onmessage = (e) => {
                 var data = JSON.parse(e.data);
                 if (data === 'complete') {
                     clearInterval(continuousConnection)
@@ -72,18 +83,16 @@ class Lookup{
                 onMessageReceivedCallback(data)
             }
 
-            chatSocket.onerror=function(event){
-                console.log("Error");
-                console.log(event)
-                //repeatConnectionAttempt()
-            }
-        }    
+            heartbeat();
+        }
 
-        console.log("trying to connect to server websocket " + wsServer)
-        continuousConnection = setInterval(() => {
-            repeatConnectionAttempt()
-        }, 1000*3);
-
+        function heartbeat() {
+            if (!socket) return;
+            if (socket.readyState !== 1) return;
+            socket.send("heartbeat");
+            setTimeout(heartbeat, 500);
+        }
+        connect_socket();
     }
 
     //calls the http startFirstDegreeCollection endpoint on our server
@@ -154,7 +163,7 @@ class Lookup{
         })
     }
 
-    getLIData(scope) {
+    getLIData() {
         let that = this
         return new Promise (function(resolve, reject) {
             axios({
@@ -175,4 +184,4 @@ class Lookup{
 }
 
 // export feature declared earlier as default
-export { lookup, fathomInit as default };
+export { Fathom as default };
